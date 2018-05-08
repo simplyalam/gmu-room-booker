@@ -12,22 +12,24 @@ WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 
 
 
 class Booker(threading.Thread):
-    def __init__(self, fname, lname, email, start_time, end_time, room, submit=True):
+    def __init__(self, fname: str, lname: str, email: str, start_time: int,
+                 end_time: int, room: str, submit: bool = True) -> None:
         threading.Thread.__init__(self)
+        self.start_time = start_time
+        self.end_time = end_time
         self.fname = fname
         self.lname = lname
         self.email = email
-        self.start_time = start_time
-        self.end_time = end_time
         self.room = room
         self.submit = submit
 
-    def run(self):
+    def run(self) -> None:
         print('Starting thread {}'.format(self.fname))
-        book(self.fname, self.lname, self.email, self.start_time, self.end_time,
-             self.room, self.submit)
+        book(self.fname, self.lname, self.email, self.start_time, self.end_time, self.room, self.submit)
 
-def book(fname, lname, email, start, end, room, submit=False):
+
+# noinspection PyBroadException
+def book(fname: str, lname: str, email: str, start: int, end: int, room: str, submit: bool = False) -> None:
     half_s = '00'
     half_e = '00'
 
@@ -43,10 +45,10 @@ def book(fname, lname, email, start, end, room, submit=False):
     if start >= 12:
         if start != 12:
             start -= 12
-        start = '{}:{}pm'.format(start, half_s)
+        start = f'{start}:{half_s}pm'
     else:
-        start = '{}:{}am'.format(start, half_s)
-    end = '{}:{}'.format(end, half_e)
+        start = f'{start}:{half_s}am'
+    end_time = f'{end}:{half_e}'
 
     options = Options()
     options.set_headless(headless=True)
@@ -62,11 +64,11 @@ def book(fname, lname, email, start, end, room, submit=False):
     rt_epoch = int(rt.timestamp()) * 1000 - HOURS_4
     wd = WEEKDAYS[bt.weekday()]
 
-    print('Name: {} {}'.format(fname, lname))
-    print('Current Time:        {}'.format(datetime.datetime.now()))
-    print('Booking Time:        {}'.format(bt))
-    print('Reservation Time:    {}, {}'.format(rt, rt_epoch))
-    print('Start-End:           {}, {} - {}'.format(wd, start, end))
+    print(f'Name:               {fname} {lname}')
+    print(f'Current Time:       {datetime.datetime.now()}')
+    print(f'Booking Time:       {bt}')
+    print(f'Reservation Time:   {rt}, {rt_epoch}')
+    print(f'Start-End:          {wd}, {start} - {end_time}')
 
     pause.until(bt)
 
@@ -78,16 +80,14 @@ def book(fname, lname, email, start, end, room, submit=False):
 
     # Go to desired date
     browser.find_element_by_class_name('fc-goToDate-button').click()
-    browser.find_element_by_xpath('//td[@data-date="{}"]'.format(str(rt_epoch))).click()
+    browser.find_element_by_xpath(f'//td[@data-date="{str(rt_epoch)}"]').click()
 
     # Click on the starting block
     print('Finding Start Block . . .')
     for i in range(1000):
         try:
-            browser.find_element_by_xpath(
-                "//*[contains(@title, '{} {}') and contains(@title, '{}')]"
-                    .format(start, wd, room)
-            ).click()
+            browser.find_element_by_xpath(f"//*[contains(@title, '{start} {wd}') and contains(@title, '{room}')]"
+                                          ).click()
             break
         except:
             if i == 1000:
@@ -99,7 +99,7 @@ def book(fname, lname, email, start, end, room, submit=False):
     while True:
         try:
             browser.find_element_by_xpath(
-                "//*[contains(@value, '{}')]".format(end)
+                f"//*[contains(@value, '{end_time}')]"
             ).click()
             break
         except:
@@ -136,13 +136,12 @@ def book(fname, lname, email, start, end, room, submit=False):
     # End timer
     f_time = time()
 
-    print('{} {} : {} : Room {} ({}-{})'.format(fname, lname, email, room, start, end-12))
-    print('Done! ({:g}s)'.format(f_time - s_time))
+    print(f'{fname} {lname} : {email} : Room {room} ({start}-{end_time})')
+    print(f'Done! ({f_time - s_time:g}s)')
 
     # Prints out reservation information
     if submit:
         table = browser.find_element_by_class_name('s-lc-eq-checkouttb')
         row = table.find_elements_by_tag_name('tr')
         data = row[1].find_elements_by_tag_name('td')[1:-1]
-        print('{}, {}\n({}) -> ({})'.format(data[0].text, data[1].text, data[2].text, data[3].text))
-
+        print(f'{data[0].text}, {data[1].text}\n({data[2].text}) -> ({data[3].text})')
